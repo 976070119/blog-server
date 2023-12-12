@@ -1,47 +1,51 @@
-const mongoose = require('mongoose');
+const mysql = require('mysql2');
 
-mongoose.connect('mongodb://47.100.39.25:27017/DATABASE_BLOG', { useNewUrlParser: true, useUnifiedTopology: true });
-mongoose.set('useFindAndModify', false)
+const poolConfig = {
+    host: "117.72.41.119",
+    user: "root",
+    password: "328522",
+    port: 3306,
+    database: "blog_data",
+    waitForConnections: true,
+    connectionLimit: 3,
+    queueLimit: 0,
+};
 
-const conn = mongoose.connection;
+const pool = mysql.createPool(poolConfig);
 
-conn.on('connected', () => {
-    console.log('server connect success!');
-})
+const promisePoolQuery = (sql, val) => {
+    return new Promise((resolve) => {
+        pool.query(sql, val, (err, results, fields) => {
+            const result = {
+                status: "ok",
+                error: err,
+                result: results,
+                fields: fields,
+            };
+            if (err) {
+                result.status = "err";
+                resolve(result);
+            } else {
+                resolve(result);
+            }
+        });
+    });
+};
 
-const userSchema = mongoose.Schema({
-    userName: { type: String, required: true },
-    passWord: { type: String, required: true },
-    nickName: { type: String, required: false },
-    type: { type: String, required: true },
-    avatar: { type: String, required: false },
-    birthday: { type: String, required: false },
-    motto: { type: String, required: false },
-    createdTime: { type: String, required: true },
-    modifyTime: { type: String, required: false },
-    loginTime: { type: String, required: false },
-})
+const promisePool = {
+    query: promisePoolQuery,
+};
 
-const articleSchema = mongoose.Schema({
-    title: { type: String, required: true },
-    desc: { type: String, required: true },
-    content: { type: String, required: true },
-    tags: { type: Array, required: false },
-    totalWords: { type: String, required: false },
-    readingTime: { type: String, required: false },
-    publishTime: { type: String, required: true },
-})
-
-const visitSchema = mongoose.Schema({
-    visits: { type: String, required: false }
-})
-
-const UserModel = mongoose.model('user', userSchema);
-const ArticleModel = mongoose.model('article', articleSchema);
-const VisitModel = mongoose.model('visit', visitSchema);
+pool.query("SELECT 1", function (err, results, fields) {
+    if (err) {
+        console.log(`数据库连接失败:${err}`);
+        return;
+    }
+    console.log("数据库连接成功");
+});
 
 module.exports = {
-    UserModel,
-    ArticleModel,
-    VisitModel
+    pool,
+    promisePool,
+    promisePoolQuery,
 };
